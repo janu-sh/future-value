@@ -109,6 +109,13 @@
                     <span id="future-value" class="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
                         CHF 0.00
                     </span>
+                    <!-- 20 Year Value Display -->
+                    <div class="mt-4">
+                        <p id="future-value-20-years" class="text-2xl sm:text-3xl font-bold text-gray-400">
+                            CHF 0.00
+                        </p>
+                        <p class="text-xs text-gray-500">in 20 years</p>
+                    </div>
                 </div>
                 <div class="w-full max-w-md mx-auto">
                     <div class="flex items-center justify-between text-lg">
@@ -118,12 +125,12 @@
                         </div>
                         <div class="text-3xl text-gray-500 mx-4 animate-pulse">→</div>
                         <div class="text-right">
-                            <p class="text-gray-400 text-sm">Future Value</p>
+                            <p class="text-gray-400 text-sm">Future Value (10y)</p>
                             <p id="future-value-recap" class="font-bold text-emerald-400 text-xl">CHF 0.00</p>
                         </div>
                     </div>
                     <div class="mt-6 text-sm text-gray-500">
-                        This is a projection based on the principle of compound growth. It assumes the initial amount is invested and grows at the specified annual rate for 10 years.
+                        This is a projection based on the principle of compound growth. It assumes the initial amount is invested and grows at the specified annual rate.
                     </div>
                 </div>
             </div>
@@ -155,9 +162,11 @@
             const presentValueEl = document.getElementById('present-value');
             const futureValueEl = document.getElementById('future-value');
             const futureValueRecapEl = document.getElementById('future-value-recap');
+            const futureValue20YearsEl = document.getElementById('future-value-20-years'); // New element for 20 years
 
             // --- State ---
-            const YEARS = 10;
+            const YEARS_10 = 10;
+            const YEARS_20 = 20;
 
             // --- Functions ---
 
@@ -206,12 +215,14 @@
                 const presentValue = calculatePresentValue();
                 const interestRate = parseFloat(interestRateSlider.value) / 100;
                 
-                const futureValue = calculateFutureValue(presentValue, interestRate, YEARS);
+                const futureValue10 = calculateFutureValue(presentValue, interestRate, YEARS_10);
+                const futureValue20 = calculateFutureValue(presentValue, interestRate, YEARS_20);
 
                 // Update UI elements
                 presentValueEl.textContent = formatCurrency(presentValue);
-                futureValueEl.textContent = formatCurrency(futureValue);
-                futureValueRecapEl.textContent = formatCurrency(futureValue);
+                futureValueEl.textContent = formatCurrency(futureValue10);
+                futureValueRecapEl.textContent = formatCurrency(futureValue10);
+                futureValue20YearsEl.textContent = formatCurrency(futureValue20); // Update 20 year value
                 interestRateValueEl.textContent = `${(interestRate * 100).toFixed(1)}%`;
             };
 
