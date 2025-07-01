@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Future Value Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles for a polished look */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .card {
+            background-color: #1f2937; /* dark:bg-gray-800 */
+            border: 1px solid #374151; /* dark:border-gray-700 */
+        }
+        .input-field {
+            background-color: #374151; /* dark:bg-gray-700 */
+            border: 1px solid #4b5563; /* dark:border-gray-600 */
+            color: #f3f4f6; /* dark:text-gray-200 */
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #3b82f6; /* blue-500 */
+            box-shadow: 0 0 0 2px #1e40af; /* focus ring */
+        }
+        /* Custom slider styles */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #4b5563; /* dark:bg-gray-600 */
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type="range"]:hover {
+            opacity: 1;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #3b82f6; /* blue-500 */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #1f2937; /* dark:bg-gray-800 */
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #3b82f6; /* blue-500 */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #1f2937; /* dark:bg-gray-800 */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen p-4 sm:p-6 lg:p-8">
+
+    <div class="w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <!-- Left Panel: Inputs -->
+        <div class="card p-6 sm:p-8 rounded-2xl shadow-2xl flex flex-col space-y-6">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-white">Investment Calculator</h1>
+                <p class="text-gray-400 mt-2">See what your purchases could be worth in the future.</p>
+            </div>
+
+            <!-- Basket Name -->
+            <div>
+                <label for="basketName" class="block text-sm font-medium text-gray-300 mb-2">Basket Name</label>
+                <input type="text" id="basketName" class="input-field w-full p-3 rounded-lg" placeholder="e.g., AliExpress Haul, New Gadgets">
+            </div>
+
+            <!-- Itemized Products -->
+            <div>
+                <h2 class="text-lg font-semibold text-white mb-3">Your Items</h2>
+                <div id="items-container" class="space-y-3">
+                    <!-- Item template will be cloned here -->
+                </div>
+                <button id="add-item-btn" class="mt-4 w-full text-sm font-semibold text-blue-400 hover:text-blue-300 bg-blue-900/50 hover:bg-blue-900/80 py-2 px-4 rounded-lg transition-colors duration-200">
+                    + Add Another Item
+                </button>
+            </div>
+
+            <!-- Interest Rate Slider -->
+            <div class="pt-4">
+                <div class="flex justify-between items-center mb-2">
+                    <label for="interestRate" class="text-sm font-medium text-gray-300">Annual Interest Rate</label>
+                    <span id="interest-rate-value" class="text-lg font-bold text-blue-400">10.0%</span>
+                </div>
+                <input type="range" id="interestRate" min="0" max="20" value="10" step="0.1" class="w-full">
+                <p class="text-xs text-gray-500 mt-2 text-center">The historical average annual return for the S&P 500 is approx. 10% (not guaranteed).</p>
+            </div>
+        </div>
+
+        <!-- Right Panel: Output -->
+        <div class="card p-6 sm:p-8 rounded-2xl shadow-2xl flex flex-col justify-center items-center text-center">
+            <div class="w-full">
+                <p class="text-gray-400 uppercase tracking-widest text-sm">Potential Value in 10 Years</p>
+                <div class="my-4">
+                    <span id="future-value" class="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
+                        CHF 0.00
+                    </span>
+                </div>
+                <div class="w-full max-w-md mx-auto">
+                    <div class="flex items-center justify-between text-lg">
+                        <div class="text-left">
+                            <p class="text-gray-400 text-sm">Today's Value</p>
+                            <p id="present-value" class="font-bold text-white text-xl">CHF 0.00</p>
+                        </div>
+                        <div class="text-3xl text-gray-500 mx-4 animate-pulse">→</div>
+                        <div class="text-right">
+                            <p class="text-gray-400 text-sm">Future Value</p>
+                            <p id="future-value-recap" class="font-bold text-emerald-400 text-xl">CHF 0.00</p>
+                        </div>
+                    </div>
+                    <div class="mt-6 text-sm text-gray-500">
+                        This is a projection based on the principle of compound growth. It assumes the initial amount is invested and grows at the specified annual rate for 10 years.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden template for a single item -->
+    <div id="item-template" class="hidden">
+        <div class="item-row flex items-center space-x-2">
+            <input type="text" class="item-name input-field w-2/3 p-2 rounded-md text-sm" placeholder="Item name">
+            <input type="number" class="item-price input-field w-1/3 p-2 rounded-md text-sm" placeholder="Price (CHF)" min="0" step="0.01">
+            <button class="remove-item-btn bg-gray-700 hover:bg-red-500 text-gray-300 hover:text-white font-bold py-2 px-3 rounded-md transition-colors duration-200 text-xs">
+                &times;
+            </button>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const itemsContainer = document.getElementById('items-container');
+            const addItemBtn = document.getElementById('add-item-btn');
+            const itemTemplate = document.getElementById('item-template');
+            const interestRateSlider = document.getElementById('interestRate');
+            
+            // Output display elements
+            const interestRateValueEl = document.getElementById('interest-rate-value');
+            const presentValueEl = document.getElementById('present-value');
+            const futureValueEl = document.getElementById('future-value');
+            const futureValueRecapEl = document.getElementById('future-value-recap');
+
+            // --- State ---
+            const YEARS = 10;
+
+            // --- Functions ---
+
+            /**
+             * Formats a number into a currency string (CHF).
+             * @param {number} amount - The number to format.
+             * @returns {string} - The formatted currency string.
+             */
+            const formatCurrency = (amount) => {
+                return new Intl.NumberFormat('de-CH', {
+                    style: 'currency',
+                    currency: 'CHF',
+                }).format(amount);
+            };
+
+            /**
+             * Calculates the total value of all items in the list.
+             * @returns {number} - The total present value.
+             */
+            const calculatePresentValue = () => {
+                const itemPrices = document.querySelectorAll('.item-price');
+                let total = 0;
+                itemPrices.forEach(input => {
+                    const value = parseFloat(input.value) || 0;
+                    total += value;
+                });
+                return total;
+            };
+
+            /**
+             * Calculates the future value based on PV, rate, and years.
+             * FV = PV * (1 + r)^n
+             * @param {number} presentValue - The initial amount.
+             * @param {number} rate - The annual interest rate (as a decimal, e.g., 0.10 for 10%).
+             * @param {number} years - The number of years.
+             * @returns {number} - The calculated future value.
+             */
+            const calculateFutureValue = (presentValue, rate, years) => {
+                return presentValue * Math.pow(1 + rate, years);
+            };
+
+            /**
+             * Main function to update all calculations and the UI.
+             */
+            const updateAll = () => {
+                const presentValue = calculatePresentValue();
+                const interestRate = parseFloat(interestRateSlider.value) / 100;
+                
+                const futureValue = calculateFutureValue(presentValue, interestRate, YEARS);
+
+                // Update UI elements
+                presentValueEl.textContent = formatCurrency(presentValue);
+                futureValueEl.textContent = formatCurrency(futureValue);
+                futureValueRecapEl.textContent = formatCurrency(futureValue);
+                interestRateValueEl.textContent = `${(interestRate * 100).toFixed(1)}%`;
+            };
+
+            /**
+             * Adds a new item row to the list.
+             */
+            const addNewItem = () => {
+                const newItemRow = itemTemplate.firstElementChild.cloneNode(true);
+                itemsContainer.appendChild(newItemRow);
+                
+                // Add event listeners to the new inputs and button
+                newItemRow.querySelector('.item-name').addEventListener('input', updateAll);
+                newItemRow.querySelector('.item-price').addEventListener('input', updateAll);
+                newItemRow.querySelector('.remove-item-btn').addEventListener('click', () => {
+                    newItemRow.remove();
+                    updateAll();
+                });
+                
+                // Focus the new item name input
+                newItemRow.querySelector('.item-name').focus();
+            };
+
+            // --- Event Listeners ---
+            addItemBtn.addEventListener('click', addNewItem);
+            interestRateSlider.addEventListener('input', updateAll);
+
+            // --- Initialization ---
+            addNewItem(); // Start with one item row
+            updateAll(); // Initial calculation
+        });
+    </script>
+
+</body>
+</html>
