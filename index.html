@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Future Value Calculator</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -60,14 +62,25 @@
             border-radius: 50%;
             border: 2px solid #1f2937; /* dark:bg-gray-800 */
         }
+        /* Toggle Switch styles */
+        .toggle-bg:after {
+            content: '';
+            @apply absolute top-0.5 left-0.5 bg-white border border-gray-300 rounded-full h-5 w-5 transition shadow-sm;
+        }
+        input:checked + .toggle-bg:after {
+            @apply transform translate-x-full;
+        }
+        input:checked + .toggle-bg {
+            @apply bg-blue-600;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen p-4 sm:p-6 lg:p-8">
 
-    <div class="w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         <!-- Left Panel: Inputs -->
-        <div class="card p-6 sm:p-8 rounded-2xl shadow-2xl flex flex-col space-y-6">
+        <div class="card p-6 sm:p-8 rounded-2xl shadow-2xl flex flex-col space-y-6 self-start">
             <div>
                 <h1 class="text-2xl sm:text-3xl font-bold text-white">Investment Calculator</h1>
                 <p class="text-gray-400 mt-2">See what your purchases could be worth in the future.</p>
@@ -89,6 +102,15 @@
                     + Add Another Item
                 </button>
             </div>
+            
+            <!-- Monthly Subscription Toggle -->
+            <div class="flex items-center justify-between pt-4 border-t border-gray-700">
+                <span class="text-sm font-medium text-gray-300">Monthly Subscription</span>
+                <label for="subscriptionToggle" class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="subscriptionToggle" class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-800 toggle-bg"></div>
+                </label>
+            </div>
 
             <!-- Interest Rate Slider -->
             <div class="pt-4">
@@ -101,37 +123,50 @@
             </div>
         </div>
 
-        <!-- Right Panel: Output -->
-        <div class="card p-6 sm:p-8 rounded-2xl shadow-2xl flex flex-col justify-center items-center text-center">
-            <div class="w-full">
-                <p class="text-gray-400 uppercase tracking-widest text-sm">Potential Value in 10 Years</p>
-                <div class="my-4">
-                    <span id="future-value" class="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
-                        CHF 0.00
-                    </span>
-                    <!-- 20 Year Value Display -->
-                    <div class="mt-4">
-                        <p id="future-value-20-years" class="text-2xl sm:text-3xl font-bold text-gray-400">
+        <!-- Right Column: Output & Chart -->
+        <div class="flex flex-col gap-8">
+            <!-- Potential Value Block -->
+            <div class="card p-6 sm:p-8 rounded-2xl shadow-2xl flex flex-col justify-center items-center text-center">
+                <div class="w-full">
+                    <p id="future-value-title" class="text-gray-400 uppercase tracking-widest text-sm">Potential Value in 10 Years</p>
+                    <div class="my-4">
+                        <span id="future-value" class="text-5xl sm:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
                             CHF 0.00
-                        </p>
-                        <p class="text-xs text-gray-500">in 20 years</p>
+                        </span>
+                        <div class="mt-4">
+                            <p id="future-value-20-years" class="text-2xl sm:text-3xl font-bold text-gray-400">
+                                CHF 0.00
+                            </p>
+                            <p id="future-value-20-years-label" class="text-xs text-gray-500">in 20 years</p>
+                        </div>
+                    </div>
+                    <div class="w-full max-w-md mx-auto">
+                        <div class="flex items-center justify-between text-lg">
+                            <div class="text-left">
+                                <p id="present-value-label" class="text-gray-400 text-sm">Today's Value</p>
+                                <p id="present-value" class="font-bold text-white text-xl">CHF 0.00</p>
+                            </div>
+                            <div class="text-3xl text-gray-500 mx-4 animate-pulse">→</div>
+                            <div class="text-right">
+                                <p id="future-value-recap-label" class="text-gray-400 text-sm">Future Value (10y)</p>
+                                <p id="future-value-recap" class="font-bold text-emerald-400 text-xl">CHF 0.00</p>
+                            </div>
+                        </div>
+                        <div id="cumulative-cost-container" class="mt-4 text-sm text-gray-400 hidden">
+                            <p>Total cost over 10 years: <span id="cumulative-cost-10y" class="font-semibold text-white"></span></p>
+                            <p>Total cost over 20 years: <span id="cumulative-cost-20y" class="font-semibold text-white"></span></p>
+                        </div>
+                        <div id="explanation-text" class="mt-6 text-sm text-gray-500">
+                            This is a projection based on the principle of compound growth.
+                        </div>
                     </div>
                 </div>
-                <div class="w-full max-w-md mx-auto">
-                    <div class="flex items-center justify-between text-lg">
-                        <div class="text-left">
-                            <p class="text-gray-400 text-sm">Today's Value</p>
-                            <p id="present-value" class="font-bold text-white text-xl">CHF 0.00</p>
-                        </div>
-                        <div class="text-3xl text-gray-500 mx-4 animate-pulse">→</div>
-                        <div class="text-right">
-                            <p class="text-gray-400 text-sm">Future Value (10y)</p>
-                            <p id="future-value-recap" class="font-bold text-emerald-400 text-xl">CHF 0.00</p>
-                        </div>
-                    </div>
-                    <div class="mt-6 text-sm text-gray-500">
-                        This is a projection based on the principle of compound growth. It assumes the initial amount is invested and grows at the specified annual rate.
-                    </div>
+            </div>
+
+            <!-- Chart Block -->
+            <div class="card p-6 sm:p-8 rounded-2xl shadow-2xl">
+                <div class="w-full h-64 sm:h-80">
+                    <canvas id="growthChart"></canvas>
                 </div>
             </div>
         </div>
@@ -156,102 +191,208 @@
             const addItemBtn = document.getElementById('add-item-btn');
             const itemTemplate = document.getElementById('item-template');
             const interestRateSlider = document.getElementById('interestRate');
+            const subscriptionToggle = document.getElementById('subscriptionToggle');
+            const chartCanvas = document.getElementById('growthChart');
             
             // Output display elements
             const interestRateValueEl = document.getElementById('interest-rate-value');
             const presentValueEl = document.getElementById('present-value');
             const futureValueEl = document.getElementById('future-value');
             const futureValueRecapEl = document.getElementById('future-value-recap');
-            const futureValue20YearsEl = document.getElementById('future-value-20-years'); // New element for 20 years
+            const futureValue20YearsEl = document.getElementById('future-value-20-years');
+            const cumulativeCostContainer = document.getElementById('cumulative-cost-container');
+            const cumulativeCost10yEl = document.getElementById('cumulative-cost-10y');
+            const cumulativeCost20yEl = document.getElementById('cumulative-cost-20y');
+
+            // Dynamic Labels
+            const futureValueTitle = document.getElementById('future-value-title');
+            const presentValueLabel = document.getElementById('present-value-label');
+            const futureValueRecapLabel = document.getElementById('future-value-recap-label');
+            const explanationText = document.getElementById('explanation-text');
 
             // --- State ---
-            const YEARS_10 = 10;
-            const YEARS_20 = 20;
+            const YEARS = 20;
+            let growthChart;
 
             // --- Functions ---
 
-            /**
-             * Formats a number into a currency string (CHF).
-             * @param {number} amount - The number to format.
-             * @returns {string} - The formatted currency string.
-             */
             const formatCurrency = (amount) => {
-                return new Intl.NumberFormat('de-CH', {
-                    style: 'currency',
-                    currency: 'CHF',
-                }).format(amount);
+                return new Intl.NumberFormat('de-CH', { style: 'currency', currency: 'CHF' }).format(amount);
             };
 
-            /**
-             * Calculates the total value of all items in the list.
-             * @returns {number} - The total present value.
-             */
             const calculatePresentValue = () => {
                 const itemPrices = document.querySelectorAll('.item-price');
                 let total = 0;
                 itemPrices.forEach(input => {
-                    const value = parseFloat(input.value) || 0;
-                    total += value;
+                    total += parseFloat(input.value) || 0;
                 });
                 return total;
             };
 
-            /**
-             * Calculates the future value based on PV, rate, and years.
-             * FV = PV * (1 + r)^n
-             * @param {number} presentValue - The initial amount.
-             * @param {number} rate - The annual interest rate (as a decimal, e.g., 0.10 for 10%).
-             * @param {number} years - The number of years.
-             * @returns {number} - The calculated future value.
-             */
-            const calculateFutureValue = (presentValue, rate, years) => {
-                return presentValue * Math.pow(1 + rate, years);
+            // FV for a lump sum: FV = PV * (1 + r)^n
+            const calculateFutureValueLumpSum = (pv, r, n) => pv * Math.pow(1 + r, n);
+
+            // FV for a series of payments (annuity): FV = P * [(((1 + r)^n) - 1) / r]
+            const calculateFutureValueAnnuity = (p, r, n) => {
+                const monthlyRate = r / 12;
+                const numMonths = n * 12;
+                if (monthlyRate === 0) return p * numMonths;
+                return p * ((Math.pow(1 + monthlyRate, numMonths) - 1) / monthlyRate);
             };
 
-            /**
-             * Main function to update all calculations and the UI.
-             */
-            const updateAll = () => {
-                const presentValue = calculatePresentValue();
-                const interestRate = parseFloat(interestRateSlider.value) / 100;
-                
-                const futureValue10 = calculateFutureValue(presentValue, interestRate, YEARS_10);
-                const futureValue20 = calculateFutureValue(presentValue, interestRate, YEARS_20);
+            const updateChart = (isSubscription, presentValue, annualRate) => {
+                const labels = Array.from({ length: YEARS + 1 }, (_, i) => `Year ${i}`);
+                const contributionsData = [];
+                const balanceData = [];
 
-                // Update UI elements
+                if (isSubscription) {
+                    // --- Subscription Chart Data ---
+                    const monthlyPayment = presentValue;
+                    const monthlyRate = annualRate / 12;
+                    for (let year = 0; year <= YEARS; year++) {
+                        const totalMonths = year * 12;
+                        let fv = 0;
+                        if (monthlyRate > 0) {
+                           fv = monthlyPayment * ((Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate);
+                        } else {
+                           fv = monthlyPayment * totalMonths;
+                        }
+                        balanceData.push(fv);
+                        contributionsData.push(monthlyPayment * totalMonths);
+                    }
+                } else {
+                    // --- One-Time Purchase Chart Data ---
+                    for (let year = 0; year <= YEARS; year++) {
+                        balanceData.push(calculateFutureValueLumpSum(presentValue, annualRate, year));
+                        contributionsData.push(presentValue);
+                    }
+                }
+                
+                growthChart.data.labels = labels;
+                growthChart.data.datasets[0].data = balanceData;
+                growthChart.data.datasets[1].data = contributionsData;
+                growthChart.update();
+            };
+            
+            const updateAll = () => {
+                const isSubscription = subscriptionToggle.checked;
+                const presentValue = calculatePresentValue();
+                const annualInterestRate = parseFloat(interestRateSlider.value) / 100;
+                
+                let futureValue10, futureValue20;
+
+                if (isSubscription) {
+                    futureValue10 = calculateFutureValueAnnuity(presentValue, annualInterestRate, 10);
+                    futureValue20 = calculateFutureValueAnnuity(presentValue, annualInterestRate, 20);
+                    cumulativeCost10yEl.textContent = formatCurrency(presentValue * 12 * 10);
+                    cumulativeCost20yEl.textContent = formatCurrency(presentValue * 12 * 20);
+                    cumulativeCostContainer.classList.remove('hidden');
+                    futureValueTitle.textContent = "Future Value of Monthly Investment";
+                    presentValueLabel.textContent = "Monthly Cost";
+                    futureValueRecapLabel.textContent = "Value after 10y";
+                    explanationText.textContent = "Projection assumes the monthly amount is invested every month, compounding at the specified annual rate.";
+                } else {
+                    futureValue10 = calculateFutureValueLumpSum(presentValue, annualInterestRate, 10);
+                    futureValue20 = calculateFutureValueLumpSum(presentValue, annualInterestRate, 20);
+                    cumulativeCostContainer.classList.add('hidden');
+                    futureValueTitle.textContent = "Potential Value in 10 Years";
+                    presentValueLabel.textContent = "Today's Value";
+                    futureValueRecapLabel.textContent = "Future Value (10y)";
+                    explanationText.textContent = "This is a projection based on the principle of compound growth. It assumes the initial amount is invested and grows at the specified annual rate.";
+                }
+
                 presentValueEl.textContent = formatCurrency(presentValue);
                 futureValueEl.textContent = formatCurrency(futureValue10);
                 futureValueRecapEl.textContent = formatCurrency(futureValue10);
-                futureValue20YearsEl.textContent = formatCurrency(futureValue20); // Update 20 year value
-                interestRateValueEl.textContent = `${(interestRate * 100).toFixed(1)}%`;
+                futureValue20YearsEl.textContent = formatCurrency(futureValue20);
+                interestRateValueEl.textContent = `${(annualInterestRate * 100).toFixed(1)}%`;
+
+                // Update the chart with the new data
+                updateChart(isSubscription, presentValue, annualInterestRate);
             };
 
-            /**
-             * Adds a new item row to the list.
-             */
             const addNewItem = () => {
                 const newItemRow = itemTemplate.firstElementChild.cloneNode(true);
                 itemsContainer.appendChild(newItemRow);
-                
-                // Add event listeners to the new inputs and button
-                newItemRow.querySelector('.item-name').addEventListener('input', updateAll);
-                newItemRow.querySelector('.item-price').addEventListener('input', updateAll);
+                newItemRow.querySelectorAll('input').forEach(input => input.addEventListener('input', updateAll));
                 newItemRow.querySelector('.remove-item-btn').addEventListener('click', () => {
                     newItemRow.remove();
                     updateAll();
                 });
-                
-                // Focus the new item name input
                 newItemRow.querySelector('.item-name').focus();
+            };
+
+            const createChart = () => {
+                const ctx = chartCanvas.getContext('2d');
+                growthChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: [], // Populated by updateChart
+                        datasets: [{
+                            label: 'Total Balance',
+                            data: [],
+                            borderColor: '#34d399', // emerald-400
+                            backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }, {
+                            label: 'Total Contribution',
+                            data: [],
+                            borderColor: '#9ca3af', // gray-400
+                            borderDash: [5, 5],
+                            fill: false,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#d1d5db' // gray-300
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    color: '#9ca3af', // gray-400
+                                    callback: function(value) {
+                                        // Correctly format Y-axis to handle values below 1000
+                                        if (value >= 1000) {
+                                            return 'CHF ' + (value / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+                                        }
+                                        return 'CHF ' + value;
+                                    }
+                                },
+                                grid: {
+                                    color: '#374151' // gray-700
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    color: '#9ca3af' // gray-400
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
             };
 
             // --- Event Listeners ---
             addItemBtn.addEventListener('click', addNewItem);
             interestRateSlider.addEventListener('input', updateAll);
+            subscriptionToggle.addEventListener('change', updateAll);
 
             // --- Initialization ---
-            addNewItem(); // Start with one item row
-            updateAll(); // Initial calculation
+            createChart();
+            addNewItem();
+            updateAll();
         });
     </script>
 
