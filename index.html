@@ -44,6 +44,18 @@
         input[type="range"]:hover {
             opacity: 1;
         }
+        /* Specific styling for the interest rate slider track */
+        #interestRate {
+            background: linear-gradient(to right, 
+                #4b5563 0%, 
+                #4b5563 10%, /* 0 to 3.5% */
+                rgba(59, 130, 246, 0.3) 11%, /* Start of fade in */
+                rgba(59, 130, 246, 0.6) 34.3%, /* Peak at 12% */
+                rgba(59, 130, 246, 0.3) 67%, /* End of fade out */
+                #4b5563 68%, /* 23.8% to 35% */
+                #4b5563 100%
+            );
+        }
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
@@ -75,9 +87,9 @@
         }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen p-4 sm:p-6 lg:p-8">
+<body class="bg-gray-900 text-gray-200 flex flex-col items-center justify-center min-h-screen p-4 sm:p-6 lg:p-8">
 
-    <div class="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <main class="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         <!-- Left Panel: Inputs -->
         <div class="card p-6 sm:p-8 rounded-2xl shadow-2xl flex flex-col space-y-6 self-start">
@@ -112,14 +124,23 @@
                 </label>
             </div>
 
-            <!-- Interest Rate Slider -->
-            <div class="pt-4">
-                <div class="flex justify-between items-center mb-2">
-                    <label for="interestRate" class="text-sm font-medium text-gray-300">Annual Interest Rate</label>
-                    <span id="interest-rate-value" class="text-lg font-bold text-blue-400">10.0%</span>
+            <!-- Interest & Inflation Rate Sliders -->
+            <div class="pt-4 space-y-4">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label for="interestRate" class="text-sm font-medium text-gray-300">Annual Interest Rate</label>
+                        <span id="interest-rate-value" class="text-lg font-bold text-blue-400">10.0%</span>
+                    </div>
+                    <input type="range" id="interestRate" min="0" max="35" value="10" step="0.1" class="w-full">
+                    <p class="text-xs text-gray-500 mt-2 text-center">The shaded area highlights a common range for stock market returns.</p>
                 </div>
-                <input type="range" id="interestRate" min="0" max="20" value="10" step="0.1" class="w-full">
-                <p class="text-xs text-gray-500 mt-2 text-center">The historical average annual return for the S&P 500 is approx. 10% (not guaranteed).</p>
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label for="inflationRate" class="text-sm font-medium text-gray-300">Annual Inflation Rate</label>
+                        <span id="inflation-rate-value" class="text-lg font-bold text-red-400">0.5%</span>
+                    </div>
+                    <input type="range" id="inflationRate" min="0" max="10" value="0.5" step="0.1" class="w-full">
+                </div>
             </div>
         </div>
 
@@ -157,7 +178,7 @@
                             <p>Total cost over 20 years: <span id="cumulative-cost-20y" class="font-semibold text-white"></span></p>
                         </div>
                         <div id="explanation-text" class="mt-6 text-sm text-gray-500">
-                            This is a projection based on the principle of compound growth.
+                            This projection shows the future value in today's money, accounting for the loss of purchasing power due to inflation.
                         </div>
                     </div>
                 </div>
@@ -170,7 +191,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
     <!-- Hidden template for a single item -->
     <div id="item-template" class="hidden">
@@ -183,6 +204,9 @@
         </div>
     </div>
 
+    <footer class="w-full max-w-7xl mx-auto text-center py-8">
+        <p class="text-xs text-gray-600">Disclaimer: This calculator is for illustrative purposes only and does not constitute financial advice.</p>
+    </footer>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -191,11 +215,13 @@
             const addItemBtn = document.getElementById('add-item-btn');
             const itemTemplate = document.getElementById('item-template');
             const interestRateSlider = document.getElementById('interestRate');
+            const inflationRateSlider = document.getElementById('inflationRate'); // New slider
             const subscriptionToggle = document.getElementById('subscriptionToggle');
             const chartCanvas = document.getElementById('growthChart');
             
             // Output display elements
             const interestRateValueEl = document.getElementById('interest-rate-value');
+            const inflationRateValueEl = document.getElementById('inflation-rate-value'); // New value display
             const presentValueEl = document.getElementById('present-value');
             const futureValueEl = document.getElementById('future-value');
             const futureValueRecapEl = document.getElementById('future-value-recap');
@@ -236,34 +262,25 @@
             const calculateFutureValueAnnuity = (p, r, n) => {
                 const monthlyRate = r / 12;
                 const numMonths = n * 12;
+                if (r === -1) return 0; // Avoid issues with rates around -100%
                 if (monthlyRate === 0) return p * numMonths;
                 return p * ((Math.pow(1 + monthlyRate, numMonths) - 1) / monthlyRate);
             };
 
-            const updateChart = (isSubscription, presentValue, annualRate) => {
+            const updateChart = (isSubscription, presentValue, realAnnualRate) => {
                 const labels = Array.from({ length: YEARS + 1 }, (_, i) => `Year ${i}`);
                 const contributionsData = [];
                 const balanceData = [];
 
                 if (isSubscription) {
-                    // --- Subscription Chart Data ---
                     const monthlyPayment = presentValue;
-                    const monthlyRate = annualRate / 12;
                     for (let year = 0; year <= YEARS; year++) {
-                        const totalMonths = year * 12;
-                        let fv = 0;
-                        if (monthlyRate > 0) {
-                           fv = monthlyPayment * ((Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate);
-                        } else {
-                           fv = monthlyPayment * totalMonths;
-                        }
-                        balanceData.push(fv);
-                        contributionsData.push(monthlyPayment * totalMonths);
+                        balanceData.push(calculateFutureValueAnnuity(monthlyPayment, realAnnualRate, year));
+                        contributionsData.push(monthlyPayment * 12 * year);
                     }
                 } else {
-                    // --- One-Time Purchase Chart Data ---
                     for (let year = 0; year <= YEARS; year++) {
-                        balanceData.push(calculateFutureValueLumpSum(presentValue, annualRate, year));
+                        balanceData.push(calculateFutureValueLumpSum(presentValue, realAnnualRate, year));
                         contributionsData.push(presentValue);
                     }
                 }
@@ -277,38 +294,40 @@
             const updateAll = () => {
                 const isSubscription = subscriptionToggle.checked;
                 const presentValue = calculatePresentValue();
-                const annualInterestRate = parseFloat(interestRateSlider.value) / 100;
+                const nominalInterestRate = parseFloat(interestRateSlider.value) / 100;
+                const inflationRate = parseFloat(inflationRateSlider.value) / 100;
+
+                // Calculate the real rate of return, adjusted for inflation
+                const realAnnualInterestRate = ((1 + nominalInterestRate) / (1 + inflationRate)) - 1;
                 
                 let futureValue10, futureValue20;
 
                 if (isSubscription) {
-                    futureValue10 = calculateFutureValueAnnuity(presentValue, annualInterestRate, 10);
-                    futureValue20 = calculateFutureValueAnnuity(presentValue, annualInterestRate, 20);
+                    futureValue10 = calculateFutureValueAnnuity(presentValue, realAnnualInterestRate, 10);
+                    futureValue20 = calculateFutureValueAnnuity(presentValue, realAnnualInterestRate, 20);
                     cumulativeCost10yEl.textContent = formatCurrency(presentValue * 12 * 10);
                     cumulativeCost20yEl.textContent = formatCurrency(presentValue * 12 * 20);
                     cumulativeCostContainer.classList.remove('hidden');
-                    futureValueTitle.textContent = "Future Value of Monthly Investment";
+                    futureValueTitle.textContent = "Potential Value (Inflation Adjusted)";
                     presentValueLabel.textContent = "Monthly Cost";
                     futureValueRecapLabel.textContent = "Value after 10y";
-                    explanationText.textContent = "Projection assumes the monthly amount is invested every month, compounding at the specified annual rate.";
                 } else {
-                    futureValue10 = calculateFutureValueLumpSum(presentValue, annualInterestRate, 10);
-                    futureValue20 = calculateFutureValueLumpSum(presentValue, annualInterestRate, 20);
+                    futureValue10 = calculateFutureValueLumpSum(presentValue, realAnnualInterestRate, 10);
+                    futureValue20 = calculateFutureValueLumpSum(presentValue, realAnnualInterestRate, 20);
                     cumulativeCostContainer.classList.add('hidden');
-                    futureValueTitle.textContent = "Potential Value in 10 Years";
+                    futureValueTitle.textContent = "Potential Value (Inflation Adjusted)";
                     presentValueLabel.textContent = "Today's Value";
                     futureValueRecapLabel.textContent = "Future Value (10y)";
-                    explanationText.textContent = "This is a projection based on the principle of compound growth. It assumes the initial amount is invested and grows at the specified annual rate.";
                 }
 
                 presentValueEl.textContent = formatCurrency(presentValue);
                 futureValueEl.textContent = formatCurrency(futureValue10);
                 futureValueRecapEl.textContent = formatCurrency(futureValue10);
                 futureValue20YearsEl.textContent = formatCurrency(futureValue20);
-                interestRateValueEl.textContent = `${(annualInterestRate * 100).toFixed(1)}%`;
-
-                // Update the chart with the new data
-                updateChart(isSubscription, presentValue, annualInterestRate);
+                interestRateValueEl.textContent = `${(nominalInterestRate * 100).toFixed(1)}%`;
+                inflationRateValueEl.textContent = `${(inflationRate * 100).toFixed(1)}%`;
+                
+                updateChart(isSubscription, presentValue, realAnnualInterestRate);
             };
 
             const addNewItem = () => {
@@ -329,7 +348,7 @@
                     data: {
                         labels: [], // Populated by updateChart
                         datasets: [{
-                            label: 'Total Balance',
+                            label: 'Total Balance (in Today\'s Money)',
                             data: [],
                             borderColor: '#34d399', // emerald-400
                             backgroundColor: 'rgba(52, 211, 153, 0.1)',
@@ -360,11 +379,10 @@
                                 ticks: {
                                     color: '#9ca3af', // gray-400
                                     callback: function(value) {
-                                        // Correctly format Y-axis to handle values below 1000
                                         if (value >= 1000) {
                                             return 'CHF ' + (value / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
                                         }
-                                        return 'CHF ' + value;
+                                        return 'CHF ' + value.toFixed(0);
                                     }
                                 },
                                 grid: {
@@ -387,6 +405,7 @@
             // --- Event Listeners ---
             addItemBtn.addEventListener('click', addNewItem);
             interestRateSlider.addEventListener('input', updateAll);
+            inflationRateSlider.addEventListener('input', updateAll);
             subscriptionToggle.addEventListener('change', updateAll);
 
             // --- Initialization ---
